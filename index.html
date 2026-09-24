@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="B&C Dev builds modern, custom websites and practical digital solutions around the needs of each business.">
+  <meta name="theme-color" content="#f3f0e8">
+  <title>B&C Dev — Custom websites, thoughtfully built</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500&amp;display=swap" rel="stylesheet">
+  <style>
+    /* B&C Dev — single-file portfolio and frontend CRM demonstration */
+    :root {
+      --bg: #f3f0e8;
+      --surface: #fbfaf6;
+      --surface-2: #e8e4da;
+      --text: #191917;
+      --muted: #68665f;
+      --accent: #c4492d;
+      --accent-dark: #94331e;
+      --border: #d5d0c5;
+      --success: #226b4b;
+      --danger: #a22d24;
+      --font-sans: "Hanken Grotesk", "Avenir Next", sans-serif;
+      --font-display: "Newsreader", Georgia, serif;
+      --page: min(1240px, calc(100vw - 48px));
+      --section: clamp(6rem, 11vw, 10.5rem);
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 28px;
+      --ease: cubic-bezier(.2,.75,.25,1);
+      --transition: 240ms var(--ease);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--text);
+      background: var(--bg);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    body.modal-open { overflow: hidden; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { color: inherit; }
+    img, iframe { display: block; max-width: 100%; }
+    :focus-visible { outline: 3px solid rgba(196,73,45,.42); outline-offset: 4px; }
+    ::selection { color: #fff; background: var(--accent); }
+    .skip-link { position: fixed; z-index: 200; top: 10px; left: 10px; padding: 10px 14px; background: var(--text); color: #fff; transform: translateY(-140%); }
+    .skip-link:focus { transform: translateY(0); }
+    .container { width: var(--page); margin-inline: auto; }
+    .section { padding-block: var(--section); }
+    .section-rule { border-top: 1px solid var(--border); }
+    .eyebrow { display: flex; gap: 12px; align-items: center; margin: 0 0 26px; color: var(--muted); font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .eyebrow::before { width: 28px; height: 2px; background: var(--accent); content: ""; }
+    .display { margin: 0; font-size: clamp(3.5rem, 8.4vw, 7.8rem); font-weight: 500; line-height: .88; letter-spacing: -.065em; }
+    .display .serif { font-family: var(--font-display); font-style: italic; font-weight: 400; letter-spacing: -.045em; }
+    .section-title { max-width: 870px; margin: 0; font-size: clamp(2.6rem, 5.4vw, 5.4rem); font-weight: 500; line-height: .96; letter-spacing: -.055em; }
+    .section-title .serif { font-family: var(--font-display); font-style: italic; font-weight: 400; letter-spacing: -.035em; }
+    .lead { max-width: 620px; margin: 0; color: var(--muted); font-size: clamp(1.05rem, 1.5vw, 1.25rem); line-height: 1.6; }
+    .button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 10px; padding: 0 19px; border: 1px solid var(--text); border-radius: 999px; background: var(--text); color: #fff; cursor: pointer; font-weight: 600; transition: transform var(--transition), background var(--transition), color var(--transition), border-color var(--transition); }
+    .button:hover { transform: translateY(-2px); background: var(--accent); border-color: var(--accent); }
+    .button.secondary { background: transparent; color: var(--text); }
+    .button.secondary:hover { background: var(--text); color: #fff; border-color: var(--text); }
+    .button.light { background: #fff; color: var(--text); border-color: #fff; }
+    .button.light:hover { background: var(--bg); border-color: var(--bg); }
+    .button.small { min-height: 40px; padding-inline: 15px; font-size: .875rem; }
+    .arrow { font-size: 1.15em; transition: transform var(--transition); }
+    a:hover .arrow, button:hover .arrow { transform: translate(3px,-2px); }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 700ms var(--ease), transform 700ms var(--ease); }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* Navigation */
+    .site-header { position: fixed; z-index: 80; top: 0; width: 100%; padding: 16px 0; transition: padding var(--transition), background var(--transition), border-color var(--transition); border-bottom: 1px solid transparent; }
+    .site-header.scrolled { padding: 9px 0; border-color: rgba(213,208,197,.75); background: rgba(243,240,232,.92); backdrop-filter: blur(16px); }
+    .nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+    .brand { width: max-content; font-size: 1.12rem; font-weight: 700; letter-spacing: -.04em; }
+    .brand .amp { color: var(--accent); font-family: var(--font-display); font-size: 1.2em; font-style: italic; }
+    .nav-links { display: flex; align-items: center; gap: 30px; font-size: .9rem; font-weight: 500; }
+    .nav-links a { position: relative; padding: 8px 0; }
+    .nav-links a::after { position: absolute; bottom: 3px; left: 0; width: 100%; height: 1px; background: var(--accent); content: ""; transform: scaleX(0); transform-origin: right; transition: transform var(--transition); }
+    .nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
+    .nav-cta { justify-self: end; }
+    .menu-toggle { display: none; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .menu-toggle span { display: block; width: 22px; height: 1.5px; margin: 6px auto; background: currentColor; transition: transform var(--transition); }
+
+    /* Hero */
+    .hero { min-height: 850px; padding: clamp(9rem, 18vh, 12rem) 0 6rem; }
+    .hero-top { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 70px; align-items: end; }
+    .hero-copy { padding-bottom: 8px; }
+    .hero-copy p { margin: 0 0 30px; color: var(--muted); font-size: 1.12rem; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .hero-stage { position: relative; margin-top: clamp(3rem, 5vw, 4rem); }
+    .hero-stage::before { position: absolute; z-index: -1; top: -24px; right: -32px; width: 24%; height: 78%; border-top: 1px solid var(--accent); border-right: 1px solid var(--accent); content: ""; opacity: .55; }
+    .browser { overflow: hidden; border: 1px solid #beb9ad; border-radius: var(--radius-md); background: #fff; box-shadow: 0 28px 70px rgba(35,30,20,.09); }
+    .browser-bar { display: flex; height: 38px; align-items: center; gap: 7px; padding: 0 14px; border-bottom: 1px solid #dedbd2; background: #ebe8e1; }
+    .browser-dot { width: 8px; height: 8px; border-radius: 50%; background: #b8b4aa; }
+    .browser-url { width: min(420px, 52%); height: 18px; margin-left: 8px; border-radius: 5px; background: #f8f7f3; }
+    .browser-view { position: relative; aspect-ratio: 16/8.45; overflow: hidden; background: #ddd; }
+    .browser-view iframe { width: 1440px; height: 800px; max-width: none; border: 0; pointer-events: none; transform: scale(var(--frame-scale, .75)); transform-origin: top left; }
+    .hero-browser .browser-view { --frame-scale: .86; }
+    .hero-float { position: absolute; right: clamp(18px, 5vw, 70px); bottom: -30px; width: 27%; min-width: 250px; }
+    .hero-float .browser-view { --frame-scale: .32; aspect-ratio: 9/12; }
+    .hero-float .browser-view iframe { width: 1000px; height: 1300px; }
+    .stage-label { position: absolute; bottom: 20px; left: 20px; display: inline-flex; gap: 8px; padding: 8px 11px; border-radius: 999px; background: rgba(25,25,23,.9); color: #fff; font-size: .72rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    .stage-label::before { width: 7px; height: 7px; margin: auto 0; border-radius: 50%; background: #7ec28d; content: ""; }
+
+    /* Work */
+    .work-intro { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, .7fr); gap: 80px; align-items: end; }
+    .work-context { padding: 2px 0 8px 26px; border-left: 1px solid var(--accent); color: var(--muted); }
+    .work-context strong { display: block; margin-bottom: 8px; color: var(--text); font-size: .82rem; letter-spacing: .09em; text-transform: uppercase; }
+    .projects { margin-top: clamp(4rem, 9vw, 8rem); }
+    .project { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .65fr); gap: clamp(38px, 6vw, 90px); align-items: center; padding-block: clamp(3.8rem, 7vw, 7rem); border-top: 1px solid var(--border); }
+    .project:nth-child(even) { grid-template-columns: minmax(300px, .65fr) minmax(0, 1.55fr); }
+    .project:nth-child(even) .project-visual { order: 2; }
+    .project-visual { position: relative; }
+    .project-visual::after { position: absolute; z-index: -1; right: -16px; bottom: -16px; width: 100%; height: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); content: ""; }
+    .project .browser-view { --frame-scale: .64; }
+    .project-index { color: var(--accent); font-family: var(--font-display); font-size: 1.1rem; font-style: italic; }
+    .project-category { margin: 15px 0 9px; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .project h3 { margin: 0; font-size: clamp(2.3rem, 4.2vw, 4.5rem); font-weight: 500; line-height: .98; letter-spacing: -.05em; }
+    .project p { margin: 24px 0 28px; color: var(--muted); font-size: 1.02rem; }
+    .sample-note { display: flex; align-items: flex-start; gap: 12px; max-width: 700px; margin-top: 25px; color: var(--muted); font-size: .86rem; }
+    .sample-note::before { flex: 0 0 auto; width: 8px; height: 8px; margin-top: 6px; border: 2px solid var(--accent); border-radius: 50%; content: ""; }
+
+    /* Services */
+    .services-head { display: grid; grid-template-columns: 1fr .7fr; gap: 80px; align-items: end; margin-bottom: 80px; }
+    .service-list { counter-reset: services; border-top: 1px solid var(--border); }
+    .service-row { display: grid; grid-template-columns: 70px minmax(220px,.65fr) 1fr; gap: 30px; align-items: start; padding: 34px 0; border-bottom: 1px solid var(--border); transition: padding var(--transition), color var(--transition); }
+    .service-row:hover { padding-inline: 12px; color: var(--accent); }
+    .service-row::before { counter-increment: services; content: "0" counter(services); color: var(--accent); font-family: var(--font-display); font-style: italic; }
+    .service-row h3 { margin: 0; font-size: clamp(1.4rem,2.1vw,2rem); font-weight: 500; letter-spacing: -.035em; }
+    .service-row p { max-width: 650px; margin: 2px 0 0; color: var(--muted); }
+
+    /* Process */
+    .process { background: var(--text); color: #f4f0e7; }
+    .process .eyebrow, .process .lead { color: #aaa79e; }
+    .process-head { display: grid; grid-template-columns: 1.15fr .6fr; gap: 80px; align-items: end; }
+    .process-track { display: grid; grid-template-columns: repeat(5,1fr); margin-top: 90px; border-top: 1px solid #4a4944; }
+    .step { position: relative; padding: 35px 28px 0 0; }
+    .step::before { position: absolute; top: -5px; left: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); content: ""; }
+    .step-num { color: #88867f; font-family: var(--font-display); font-style: italic; }
+    .step h3 { margin: 36px 0 12px; font-size: 1.25rem; font-weight: 600; }
+    .step p { margin: 0; color: #aaa79e; font-size: .9rem; }
+
+    /* Why custom */
+    .custom-layout { display: grid; grid-template-columns: minmax(0,.82fr) minmax(0,1.18fr); gap: clamp(60px,10vw,140px); align-items: start; }
+    .sticky-copy { position: sticky; top: 130px; }
+    .custom-points { border-top: 1px solid var(--border); }
+    .custom-point { display: grid; grid-template-columns: 42px 1fr; gap: 20px; padding: 28px 0; border-bottom: 1px solid var(--border); }
+    .custom-point .mark { color: var(--accent); font-family: var(--font-display); font-style: italic; }
+    .custom-point h3 { margin: 0 0 8px; font-size: 1.24rem; font-weight: 600; letter-spacing: -.025em; }
+    .custom-point p { margin: 0; color: var(--muted); }
+
+    /* About */
+    .about-grid { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(280px,.65fr); gap: 100px; align-items: end; }
+    .about-statement { margin: 0; font-size: clamp(2.25rem,4vw,4.3rem); line-height: 1.08; letter-spacing: -.05em; }
+    .about-statement em { color: var(--accent); font-family: var(--font-display); font-weight: 400; }
+    .about-copy p { color: var(--muted); }
+    .about-copy .editable { margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border); font-size: .83rem; }
+
+    /* Contact */
+    .contact { padding-block: var(--section); background: var(--surface-2); }
+    .contact-grid { display: grid; grid-template-columns: minmax(280px,.66fr) minmax(0,1.1fr); gap: clamp(60px,10vw,150px); }
+    .contact-copy { position: sticky; top: 130px; align-self: start; }
+    .contact-copy .section-title { font-size: clamp(3rem,5vw,5.6rem); }
+    .contact-meta { margin-top: 38px; color: var(--muted); font-size: .92rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; }
+    .field { display: grid; gap: 8px; }
+    .field.full { grid-column: 1/-1; }
+    .field label { font-size: .78rem; font-weight: 700; letter-spacing: .05em; }
+    .field .optional { color: var(--muted); font-weight: 400; }
+    .field input, .field select, .field textarea { width: 100%; min-height: 50px; padding: 12px 0; border: 0; border-bottom: 1px solid #aaa69c; border-radius: 0; background: transparent; color: var(--text); transition: border-color var(--transition), box-shadow var(--transition); }
+    .field textarea { min-height: 115px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 1px 0 var(--accent); }
+    .form-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 30px; }
+    .form-note { max-width: 430px; margin: 0; color: var(--muted); font-size: .79rem; }
+    .form-status { min-height: 24px; margin-top: 16px; color: var(--success); font-size: .9rem; font-weight: 600; }
+
+    /* Footer */
+    .site-footer { padding: 65px 0 30px; background: var(--text); color: #f4f0e7; }
+    .footer-top { display: grid; grid-template-columns: 1fr auto; gap: 50px; align-items: end; padding-bottom: 55px; }
+    .footer-line { max-width: 720px; margin: 16px 0 0; color: #aaa79e; font-family: var(--font-display); font-size: clamp(1.65rem,3vw,2.8rem); line-height: 1.15; }
+    .footer-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding-top: 22px; border-top: 1px solid #41403c; color: #aaa79e; font-size: .78rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 23px; }
+    .footer-links button { padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+    .footer-links a:hover, .footer-links button:hover { color: #fff; }
+
+    /* Dialogs and dashboard */
+    .dialog { width: min(920px, calc(100vw - 32px)); max-height: min(88vh, 900px); padding: 0; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text); box-shadow: 0 30px 100px rgba(0,0,0,.24); }
+    .dialog::backdrop { background: rgba(25,25,23,.65); backdrop-filter: blur(5px); }
+    .dialog-shell { padding: clamp(28px,5vw,58px); }
+    .dialog-head { display: flex; justify-content: space-between; gap: 25px; align-items: flex-start; margin-bottom: 36px; }
+    .dialog-head h2 { margin: 0; font-size: clamp(2rem,4vw,3.6rem); line-height: 1; letter-spacing: -.05em; }
+    .icon-button { display: inline-grid; flex: 0 0 auto; width: 42px; height: 42px; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: transparent; cursor: pointer; font-size: 1.35rem; transition: background var(--transition),color var(--transition); }
+    .icon-button:hover { background: var(--text); color: #fff; }
+    .legal-nav { display: flex; gap: 10px; margin-bottom: 34px; border-bottom: 1px solid var(--border); }
+    .legal-tab { padding: 12px 4px; margin-right: 20px; border: 0; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; color: var(--muted); font-weight: 600; }
+    .legal-tab.active { border-color: var(--accent); color: var(--text); }
+    .legal-panel[hidden] { display: none; }
+    .legal-panel h3 { margin: 30px 0 8px; font-size: 1.1rem; }
+    .legal-panel p, .legal-panel li { color: var(--muted); }
+    .draft-banner { padding: 14px 16px; border-left: 3px solid var(--accent); background: #eee7db; font-weight: 600; }
+    .placeholder-list { padding-left: 20px; }
+
+    .sales-dialog { width: min(1450px, calc(100vw - 24px)); height: min(92vh, 1000px); max-height: 1000px; overflow: hidden; background: #f5f3ed; }
+    .login-view { display: grid; min-height: 620px; grid-template-columns: .8fr 1.2fr; }
+    .login-aside { display: flex; flex-direction: column; justify-content: space-between; padding: clamp(35px,5vw,70px); background: var(--text); color: #fff; }
+    .login-aside h2 { max-width: 420px; margin: 30px 0; font-size: clamp(2.6rem,5vw,5rem); line-height: .95; letter-spacing: -.06em; }
+    .login-aside h2 em { color: #dd7255; font-family: var(--font-display); font-weight: 400; }
+    .login-aside p { color: #aaa79e; }
+    .login-panel { position: relative; display: grid; align-content: center; padding: clamp(38px,7vw,100px); }
+    .login-panel .icon-button { position: absolute; top: 24px; right: 24px; }
+    .login-panel h3 { margin: 0 0 9px; font-size: 2.1rem; letter-spacing: -.045em; }
+    .login-form { display: grid; gap: 20px; margin-top: 34px; }
+    .login-form .button { margin-top: 8px; }
+    .demo-credentials { margin-top: 28px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); font-size: .82rem; }
+    .demo-credentials strong { display: block; margin-bottom: 5px; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+    .login-error { min-height: 22px; margin: 0; color: var(--danger); font-size: .86rem; }
+    .dashboard-view { display: none; height: 100%; min-height: 0; grid-template-rows: auto 1fr; }
+    .dashboard-view.active { display: grid; }
+    .dash-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .dash-brand { display: flex; gap: 18px; align-items: center; }
+    .dash-brand span { color: var(--muted); font-size: .8rem; }
+    .dash-actions { display: flex; gap: 10px; }
+    .dashboard-body { overflow: auto; padding: clamp(22px,3vw,42px); }
+    .dashboard-title { display: flex; justify-content: space-between; gap: 20px; align-items: end; }
+    .dashboard-title h2 { margin: 0; font-size: clamp(2.2rem,4vw,4rem); line-height: 1; letter-spacing: -.055em; }
+    .dashboard-title p { margin: 8px 0 0; color: var(--muted); }
+    .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; margin: 35px 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--border); }
+    .stat { padding: 18px 20px; background: var(--surface); }
+    .stat span { display: block; color: var(--muted); font-size: .75rem; font-weight: 600; text-transform: uppercase; }
+    .stat strong { display: block; margin-top: 8px; font-family: var(--font-display); font-size: 2rem; font-weight: 500; }
+    .table-tools { display: grid; grid-template-columns: minmax(230px,1fr) 190px; gap: 12px; margin-bottom: 16px; }
+    .control { min-height: 44px; padding: 10px 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+    .lead-list { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+    .lead-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .lead-table th { padding: 12px; border-bottom: 1px solid var(--border); color: var(--muted); text-align: left; font-size: .68rem; letter-spacing: .05em; text-transform: uppercase; }
+    .lead-table td { padding: 14px 12px; border-bottom: 1px solid #e4e0d7; vertical-align: top; }
+    .lead-table tr:last-child td { border-bottom: 0; }
+    .lead-table .primary-cell strong, .lead-table .primary-cell span { display: block; }
+    .lead-table .primary-cell span { color: var(--muted); }
+    .status-pill { display: inline-flex; padding: 5px 8px; border-radius: 999px; background: #e7e3da; font-size: .7rem; font-weight: 700; }
+    .status-pill[data-status="New"] { background: #e4ebf4; color: #284f7a; }
+    .status-pill[data-status="Contacted"] { background: #eee6d4; color: #785519; }
+    .status-pill[data-status="Follow-up"] { background: #f3ded8; color: #813422; }
+    .status-pill[data-status="Converted"] { background: #dcebe2; color: #205c3f; }
+    .row-actions { display: flex; gap: 5px; }
+    .text-button { padding: 4px; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-weight: 600; }
+    .text-button:hover { color: var(--accent); }
+    .empty-state { padding: 70px 20px; text-align: center; }
+    .empty-state strong { display: block; font-size: 1.25rem; }
+    .empty-state p { margin: 7px auto 20px; color: var(--muted); }
+    .lead-dialog { width: min(720px,calc(100vw - 32px)); }
+    .lead-form .form-grid { gap: 16px 22px; }
+    .lead-form .field input, .lead-form .field select, .lead-form .field textarea { padding: 9px 0; min-height: 42px; }
+    .lead-form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+
+    /* Responsive */
+    @media (max-width: 1000px) {
+      :root { --page: min(100% - 36px, 900px); }
+      .hero-top, .work-intro, .services-head, .process-head, .about-grid { grid-template-columns: 1fr; gap: 38px; }
+      .hero-copy { max-width: 600px; }
+      .hero { min-height: 0; }
+      .project, .project:nth-child(even) { grid-template-columns: 1fr; gap: 45px; }
+      .project:nth-child(even) .project-visual { order: 0; }
+      .project-copy { max-width: 670px; }
+      .process-track { grid-template-columns: repeat(3,1fr); row-gap: 55px; }
+      .process-track .step:nth-child(n+4) { border-top: 1px solid #4a4944; }
+      .custom-layout, .contact-grid { grid-template-columns: 1fr; }
+      .sticky-copy, .contact-copy { position: static; }
+      .contact-copy { max-width: 700px; }
+      .stats { grid-template-columns: repeat(3,1fr); }
+      .lead-table th:nth-child(4), .lead-table td:nth-child(4), .lead-table th:nth-child(5), .lead-table td:nth-child(5), .lead-table th:nth-child(6), .lead-table td:nth-child(6) { display: none; }
+    }
+    @media (max-width: 760px) {
+      :root { --page: calc(100% - 28px); --section: 5.5rem; }
+      .site-header { padding: 9px 0; background: rgba(243,240,232,.94); }
+      .nav { grid-template-columns: 1fr auto; }
+      .menu-toggle { display: block; }
+      .nav-cta { display: none; }
+      .nav-links { position: fixed; z-index: -1; top: 0; left: 0; display: grid; width: 100%; padding: 92px 22px 28px; gap: 4px; border-bottom: 1px solid var(--border); background: var(--bg); opacity: 0; pointer-events: none; transform: translateY(-16px); transition: opacity var(--transition),transform var(--transition); }
+      .nav-links a { padding: 12px 4px; border-bottom: 1px solid var(--border); font-size: 1.1rem; }
+      .site-header.menu-open .nav-links { opacity: 1; pointer-events: auto; transform: none; }
+      .site-header.menu-open .menu-toggle span:first-child { transform: translateY(3.75px) rotate(45deg); }
+      .site-header.menu-open .menu-toggle span:last-child { transform: translateY(-3.75px) rotate(-45deg); }
+      .hero { padding-top: 8.5rem; }
+      .hero-top { gap: 35px; }
+      .display { font-size: clamp(3.4rem,18vw,5.8rem); }
+      .hero-stage { margin-top: 4rem; }
+      .hero-stage::before { display: none; }
+      .hero-float { display: none; }
+      .hero-browser .browser-view { --frame-scale: .5; aspect-ratio: 4/3; }
+      .browser-view iframe { width: 1200px; }
+      .work-context { padding-left: 18px; }
+      .project { padding-block: 4rem; }
+      .project .browser-view { --frame-scale: .39; aspect-ratio: 4/3; }
+      .project-visual::after { right: -8px; bottom: -8px; }
+      .service-row { grid-template-columns: 42px 1fr; gap: 10px 12px; }
+      .service-row p { grid-column: 2; }
+      .service-row:hover { padding-inline: 0; }
+      .process-track { grid-template-columns: 1fr; border-top: 0; margin-top: 60px; }
+      .step, .process-track .step:nth-child(n+4) { padding: 28px 0 5px 30px; border-top: 1px solid #4a4944; }
+      .step::before { top: 25px; }
+      .step h3 { margin: 8px 0; }
+      .about-grid { gap: 45px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .form-footer, .footer-top { align-items: flex-start; flex-direction: column; }
+      .footer-top { display: flex; }
+      .login-view { grid-template-columns: 1fr; min-height: 0; }
+      .login-aside { display: none; }
+      .login-panel { min-height: 620px; padding: 40px 24px; }
+      .sales-dialog { width: 100vw; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
+      .dash-header { padding: 12px 14px; }
+      .dash-brand span { display: none; }
+      .dash-actions .button.secondary { display: none; }
+      .dashboard-body { padding: 22px 14px; }
+      .dashboard-title { display: block; }
+      .dashboard-title .button { width: 100%; margin-top: 20px; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .stats .stat:first-child { grid-column: 1/-1; }
+      .table-tools { grid-template-columns: 1fr; }
+      .lead-list { border: 0; background: transparent; }
+      .lead-table, .lead-table tbody { display: block; }
+      .lead-table thead { display: none; }
+      .lead-table tr { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 12px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+      .lead-table td { display: block !important; padding: 0; border: 0; }
+      .lead-table td::before { display: block; margin-bottom: 2px; color: var(--muted); content: attr(data-label); font-size: .62rem; letter-spacing: .04em; text-transform: uppercase; }
+      .lead-table td:first-child, .lead-table td:nth-child(4), .lead-table td:nth-child(7) { grid-column: 1/-1; }
+      .lead-table td:nth-child(5), .lead-table td:nth-child(6) { display: none !important; }
+      .lead-table .row-actions { justify-content: flex-end; }
+      .dialog-shell { padding: 26px 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+  </style>
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header" id="siteHeader">
+    <nav class="nav container" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="B and C Dev home">B<span class="amp">&amp;</span>C Dev</a>
+      <div class="nav-links" id="navLinks">
+        <a href="#work">Work</a>
+        <a href="#services">Services</a>
+        <a href="#process">Process</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <a class="button small nav-cta" href="#contact">Start a Project <span class="arrow" aria-hidden="true">↗</span></a>
+      <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-controls="navLinks" aria-expanded="false"><span></span><span></span></button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero container" id="top">
+      <div class="hero-top">
+        <div>
+          <p class="eyebrow">Independent web development</p>
+          <h1 class="display">Websites built around <span class="serif">your business.</span></h1>
+        </div>
+        <div class="hero-copy">
+          <p>Custom websites designed and developed around how your business actually works—not forced into a familiar template.</p>
+          <div class="hero-actions">
+            <a class="button" href="#work">View Our Work <span class="arrow" aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="#contact">Start a Project</a>
+          </div>
+        </div>
+      </div>
+      <div class="hero-stage visible">
+        <div class="browser hero-browser" aria-label="Live preview of the Real Estate sample website">
+          <div class="browser-bar" aria-hidden="true"><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-url"></i></div>
+          <div class="browser-view">
+            <iframe src="https://bhavayjain.github.io/Real-Estate/" title="Real Estate sample website preview" loading="eager" tabindex="-1"></iframe>
+            <span class="stage-label">Live sample</span>
+          </div>
+        </div>
+        <div class="browser hero-float" aria-hidden="true">
+          <div class="browser-bar"><i class="browser-dot"></i><i class="browser-dot"></i></div>
+          <div class="browser-view"><iframe src="https://bhavayjain.github.io/Dental-Clinics/" title="" loading="lazy" tabindex="-1"></iframe></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-rule" id="work">
+      <div class="container">
+        <div class="work-intro reveal">
+          <div>
+            <p class="eyebrow">Selected work</p>
+            <h2 class="section-title">Four directions. <span class="serif">No fixed template.</span></h2>
+          </div>
+          <div class="work-context">
+            <strong>Demonstration websites</strong>
+            These samples show how structure, visual language and functionality can shift for different industries. They are starting points for a conversation—not pre-built packages.
+          </div>
+        </div>
+
+        <div class="projects">
+          <article class="project reveal">
+            <a class="project-visual" href="https://bhavayjain.github.io/Real-Estate/" target="_blank" rel="noopener" aria-label="Open the Real Estate sample website in a new tab">
+              <div class="browser">
+                <div class="browser-bar" aria-hidden="true"><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-url"></i></div>
+                <div class="browser-view"><iframe src="https://bhavayjain.github.io/Real-Estate/" title="Real Estate sample preview" loading="lazy" tabindex="-1"></iframe></div>
+              </div>
+            </a>
+            <div class="project-copy">
+              <span class="project-index">01</span>
+              <p class="project-category">Real Estate</p>
+              <h3>Property, presented with clarity.</h3>
+              <p>A modern real-estate concept focused on property presentation, visual hierarchy and enquiry-driven browsing.</p>
+              <a class="button secondary" href="https://bhavayjain.github.io/Real-Estate/" target="_blank" rel="noopener">View Sample <span class="arrow" aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+
+          <article class="project reveal">
+            <a class="project-visual" href="https://bhavayjain.github.io/Dental-Clinics/" target="_blank" rel="noopener" aria-label="Open the Dental Clinics sample website in a new tab">
+              <div class="browser">
+                <div class="browser-bar" aria-hidden="true"><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-url"></i></div>
+                <div class="browser-view"><iframe src="https://bhavayjain.github.io/Dental-Clinics/" title="Dental Clinics sample preview" loading="lazy" tabindex="-1"></iframe></div>
+              </div>
+            </a>
+            <div class="project-copy">
+              <span class="project-index">02</span>
+              <p class="project-category">Healthcare / Dental</p>
+              <h3>Professional, without feeling clinical.</h3>
+              <p>A dental clinic concept with a clean medical presentation and appointment-focused structure.</p>
+              <a class="button secondary" href="https://bhavayjain.github.io/Dental-Clinics/" target="_blank" rel="noopener">View Sample <span class="arrow" aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+
+          <article class="project reveal">
+            <a class="project-visual" href="https://bhavayjain.github.io/Aurora/" target="_blank" rel="noopener" aria-label="Open the Aurora restaurant sample website in a new tab">
+              <div class="browser">
+                <div class="browser-bar" aria-hidden="true"><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-url"></i></div>
+                <div class="browser-view"><iframe src="https://bhavayjain.github.io/Aurora/" title="Aurora restaurant sample preview" loading="lazy" tabindex="-1"></iframe></div>
+              </div>
+            </a>
+            <div class="project-copy">
+              <span class="project-index">03</span>
+              <p class="project-category">Restaurant</p>
+              <h3>Atmosphere before the first visit.</h3>
+              <p>A restaurant concept focused on atmosphere, menu presentation and a strong visual identity.</p>
+              <a class="button secondary" href="https://bhavayjain.github.io/Aurora/" target="_blank" rel="noopener">View Sample <span class="arrow" aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+
+          <article class="project reveal">
+            <a class="project-visual" href="https://bhavayjain.github.io/Landing-Page/" target="_blank" rel="noopener" aria-label="Open the Landing Page sample website in a new tab">
+              <div class="browser">
+                <div class="browser-bar" aria-hidden="true"><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-dot"></i><i class="browser-url"></i></div>
+                <div class="browser-view"><iframe src="https://bhavayjain.github.io/Landing-Page/" title="Landing Page sample preview" loading="lazy" tabindex="-1"></iframe></div>
+              </div>
+            </a>
+            <div class="project-copy">
+              <span class="project-index">04</span>
+              <p class="project-category">Landing Page</p>
+              <h3>One page. One clear direction.</h3>
+              <p>A flexible landing-page concept demonstrating a focused structure for presenting a product, service or business.</p>
+              <a class="button secondary" href="https://bhavayjain.github.io/Landing-Page/" target="_blank" rel="noopener">View Sample <span class="arrow" aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+        </div>
+        <p class="sample-note">Sample websites shown for demonstration. Designs and functionality can be customised to suit each client's branding, content, audience and requirements.</p>
+      </div>
+    </section>
+
+    <section class="section section-rule" id="services">
+      <div class="container">
+        <div class="services-head reveal">
+          <div><p class="eyebrow">Services</p><h2 class="section-title">The right shape for <span class="serif">the job.</span></h2></div>
+          <p class="lead">From a focused landing page to a more capable business website, each scope is defined by what the project actually needs.</p>
+        </div>
+        <div class="service-list reveal">
+          <article class="service-row"><h3>Custom Websites</h3><p>Purpose-built websites shaped around the business, its audience and how information should be found.</p></article>
+          <article class="service-row"><h3>Website Redesign</h3><p>A considered refresh of visual design, structure, responsiveness and usability for an existing website.</p></article>
+          <article class="service-row"><h3>Landing Pages</h3><p>Focused pages for presenting a product, service, campaign or enquiry goal without unnecessary noise.</p></article>
+          <article class="service-row"><h3>Business Websites</h3><p>A professional online presence for local businesses, clinics, restaurants, property companies and other organisations.</p></article>
+          <article class="service-row"><h3>Custom Features</h3><p>Enquiry systems, appointment forms, calculators, interactive sections and dashboards where the project calls for them.</p></article>
+          <article class="service-row"><h3>AI &amp; Automation</h3><p>Practical AI-powered features and business automations, recommended only where they provide a genuine benefit.</p></article>
+        </div>
+      </div>
+    </section>
+    <section class="section process" id="process">
+      <div class="container">
+        <div class="process-head reveal">
+          <div><p class="eyebrow">How I work</p><h2 class="section-title">Clear from first conversation to <span class="serif">final handover.</span></h2></div>
+          <p class="lead">A straightforward process that keeps the work focused and gives every stage a clear purpose.</p>
+        </div>
+        <div class="process-track reveal">
+          <article class="step"><span class="step-num">01</span><h3>Understand</h3><p>Learn the business, audience, goals and project requirements.</p></article>
+          <article class="step"><span class="step-num">02</span><h3>Design</h3><p>Develop the visual direction, structure and user experience.</p></article>
+          <article class="step"><span class="step-num">03</span><h3>Build</h3><p>Turn the approved direction into a responsive working website.</p></article>
+          <article class="step"><span class="step-num">04</span><h3>Refine</h3><p>Test across screen sizes and resolve the details that make it feel finished.</p></article>
+          <article class="step"><span class="step-num">05</span><h3>Launch</h3><p>Prepare the final website for deployment and handover.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="custom">
+      <div class="container custom-layout">
+        <div class="sticky-copy reveal">
+          <p class="eyebrow">Why custom</p>
+          <h2 class="section-title">Made to fit. <span class="serif">Built to adapt.</span></h2>
+          <p class="lead" style="margin-top:28px">A useful website should reflect the way your business communicates, sells and serves—not just fill a set of predefined boxes.</p>
+        </div>
+        <div class="custom-points reveal">
+          <article class="custom-point"><span class="mark">A</span><div><h3>Structure that follows the business</h3><p>Content hierarchy is planned around what visitors need to understand and what you need them to do.</p></div></article>
+          <article class="custom-point"><span class="mark">B</span><div><h3>A visual language that belongs to the brand</h3><p>Typography, colour, imagery and interaction are chosen for the business rather than inherited from a generic theme.</p></div></article>
+          <article class="custom-point"><span class="mark">C</span><div><h3>Responsive by design</h3><p>Layouts are considered across desktop, tablet and mobile instead of simply being compressed for smaller screens.</p></div></article>
+          <article class="custom-point"><span class="mark">D</span><div><h3>Features with a reason to exist</h3><p>Forms, booking flows, calculators or custom interactions are scoped around genuine requirements.</p></div></article>
+          <article class="custom-point"><span class="mark">E</span><div><h3>Room to expand</h3><p>The foundations can be planned so the website remains useful as services, content and priorities evolve.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-rule" id="about">
+      <div class="container about-grid reveal">
+        <div>
+          <p class="eyebrow">About B&amp;C Dev</p>
+          <p class="about-statement">An independent web development business focused on modern, practical websites with <em>clear thinking behind them.</em></p>
+        </div>
+        <div class="about-copy">
+          <p>Working independently keeps communication direct and the work close to the person building it. Every project starts with the business itself—its priorities, audience and real requirements.</p>
+          <p>The result is considered design and clean frontend development without the overhead or theatre of a large agency.</p>
+          <p class="editable"><strong>Owner profile placeholder:</strong> Add the developer's name, location, background or preferred introduction here before launch.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact">
+      <div class="container contact-grid">
+        <div class="contact-copy reveal">
+          <p class="eyebrow">Start a project</p>
+          <h2 class="section-title">Have a project <span class="serif">in mind?</span></h2>
+          <p class="lead" style="margin-top:28px">Tell me what you're working on, where you are now and what the website needs to achieve.</p>
+          <p class="contact-meta">No polished brief required. A clear outline is enough to start the conversation.</p>
+        </div>
+        <form class="enquiry-form reveal" id="enquiryForm">
+          <div class="form-grid">
+            <div class="field"><label for="name">Name</label><input id="name" name="name" autocomplete="name" required></div>
+            <div class="field"><label for="business">Business / Organisation</label><input id="business" name="business" autocomplete="organization" required></div>
+            <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+            <div class="field"><label for="phone">Phone / WhatsApp <span class="optional">(optional)</span></label><input id="phone" name="phone" type="tel" autocomplete="tel"></div>
+            <div class="field"><label for="businessType">Business type</label><input id="businessType" name="businessType" placeholder="e.g. Dental clinic" required></div>
+            <div class="field"><label for="need">What do you need?</label><select id="need" name="need" required><option value="">Choose an option</option><option>New business website</option><option>Website redesign</option><option>Landing page</option><option>Custom frontend experience</option><option>Custom feature or automation</option><option>Not sure yet</option></select></div>
+            <div class="field full"><label for="existing">Existing website, if any <span class="optional">(optional)</span></label><input id="existing" name="existing" type="url" inputmode="url" placeholder="https://"></div>
+            <div class="field full"><label for="details">Additional details</label><textarea id="details" name="details" placeholder="What should the website help your business do?" required></textarea></div>
+          </div>
+          <div class="form-footer">
+            <p class="form-note">Frontend demonstration only. Submitting validates the form but does not send or store your details. Connect a backend or form service before launch.</p>
+            <button class="button" type="submit">Send Enquiry <span class="arrow" aria-hidden="true">↗</span></button>
+          </div>
+          <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div><a class="brand" href="#top">B<span class="amp">&amp;</span>C Dev</a><p class="footer-line">Custom websites, thoughtfully designed and carefully built.</p></div>
+        <a class="button light" href="#contact">Start a Project <span class="arrow" aria-hidden="true">↗</span></a>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year"></span> B&amp;C Dev. Independent web development.</span>
+        <div class="footer-links">
+          <button type="button" data-legal="terms">Terms of Service</button>
+          <button type="button" data-legal="privacy">Privacy Policy</button>
+          <button type="button" id="salesLoginLink">Sales Login</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <dialog class="dialog" id="legalDialog" aria-labelledby="legalTitle">
+    <div class="dialog-shell">
+      <div class="dialog-head"><div><p class="eyebrow">Draft legal information</p><h2 id="legalTitle">Terms &amp; Privacy</h2></div><button class="icon-button" type="button" data-close-dialog aria-label="Close legal information">×</button></div>
+      <div class="legal-nav" role="tablist" aria-label="Legal documents">
+        <button class="legal-tab active" id="termsTab" type="button" role="tab" aria-selected="true" aria-controls="termsPanel" data-panel="terms">Terms of Service</button>
+        <button class="legal-tab" id="privacyTab" type="button" role="tab" aria-selected="false" aria-controls="privacyPanel" data-panel="privacy">Privacy Policy</button>
+      </div>
+      <section class="legal-panel" id="termsPanel" role="tabpanel" aria-labelledby="termsTab">
+        <p class="draft-banner">Draft only — [Business owner should review and replace this draft with the final legal terms.]</p>
+        <h3>Scope of services</h3><p>Project scope, deliverables, responsibilities and exclusions should be documented and agreed separately for each engagement.</p>
+        <h3>Payment and scheduling</h3><p>[Add the agreed deposit, milestone, invoicing, cancellation and scheduling terms used by B&amp;C Dev.]</p>
+        <h3>Content and approvals</h3><p>[Explain who supplies content and assets, how feedback and approvals work, and what happens when project requirements change.]</p>
+        <h3>Ownership and third-party services</h3><p>[Define ownership of final deliverables, licensing, portfolio use and responsibility for hosting, domains, fonts, plugins or other third-party services.]</p>
+        <h3>Support and liability</h3><p>[Define any post-launch support, warranties, limitation of liability and governing law after professional legal review.]</p>
+      </section>
+      <section class="legal-panel" id="privacyPanel" role="tabpanel" aria-labelledby="privacyTab" hidden>
+        <p class="draft-banner">Draft only — [Business owner should review and replace this draft with the final privacy policy.]</p>
+        <p>This demonstration does not transmit the public enquiry form or store its entries. Before launch, document the production setup accurately.</p>
+        <ul class="placeholder-list">
+          <li><strong>Information collected:</strong> [List the information collected by the contact form and any analytics.]</li>
+          <li><strong>Why it is collected:</strong> [Explain the purpose and lawful basis for collection.]</li>
+          <li><strong>Where it is stored:</strong> [Identify storage location and safeguards.]</li>
+          <li><strong>Retention:</strong> [State how long information is retained.]</li>
+          <li><strong>Third parties:</strong> [List hosting, analytics, form, email or other providers.]</li>
+          <li><strong>Deletion requests:</strong> [Provide an email or process for access and deletion requests.]</li>
+        </ul>
+        <h3>Sales dashboard demonstration</h3><p>The included lead dashboard uses this browser's localStorage. It is not secure cloud storage and must not be used for real personal data. Production use requires proper authentication, access control and secured backend storage.</p>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog class="dialog sales-dialog" id="salesDialog" aria-labelledby="salesTitle">
+    <div class="login-view" id="loginView">
+      <aside class="login-aside">
+        <a class="brand" href="#top">B<span class="amp">&amp;</span>C Dev</a>
+        <div><p class="eyebrow">Internal demonstration</p><h2>Prospects, kept <em>in view.</em></h2><p>A lightweight frontend demonstration for managing sales leads.</p></div>
+        <p>Local browser storage only. Not for real client or prospect data.</p>
+      </aside>
+      <div class="login-panel">
+        <button class="icon-button" type="button" data-close-dialog aria-label="Close sales login">×</button>
+        <p class="eyebrow">Sales area</p><h3 id="salesTitle">Sales Login</h3><p class="lead">Enter the demonstration credentials to view the lead workspace.</p>
+        <form class="login-form" id="loginForm">
+          <div class="field"><label for="salesId">Salesperson ID</label><input id="salesId" autocomplete="username" required></div>
+          <div class="field"><label for="salesPassword">Password</label><input id="salesPassword" type="password" autocomplete="current-password" required></div>
+          <p class="login-error" id="loginError" role="alert"></p>
+          <button class="button" type="submit">Open Dashboard <span class="arrow" aria-hidden="true">→</span></button>
+        </form>
+        <div class="demo-credentials"><strong>Demo credentials</strong>ID: <code>demo</code> &nbsp; Password: <code>bcdev-demo</code><br>Frontend demonstration only—this is not secure authentication.</div>
+      </div>
+    </div>
+
+    <section class="dashboard-view" id="dashboardView" aria-label="Lead dashboard">
+      <header class="dash-header">
+        <div class="dash-brand"><strong>B<span style="color:var(--accent)">&amp;</span>C Dev</strong><span>Sales workspace · local demo</span></div>
+        <div class="dash-actions"><button class="button secondary small" id="logoutButton" type="button">Log out</button><button class="icon-button" type="button" data-close-dialog aria-label="Close sales dashboard">×</button></div>
+      </header>
+      <div class="dashboard-body">
+        <div class="dashboard-title"><div><h2>Lead overview</h2><p>Stored in this browser only. Do not use for real personal data.</p></div><button class="button" id="addLeadButton" type="button">Add a Lead <span aria-hidden="true">＋</span></button></div>
+        <div class="stats" aria-label="Lead totals">
+          <div class="stat"><span>Total Leads</span><strong id="statTotal">0</strong></div>
+          <div class="stat"><span>New Leads</span><strong id="statNew">0</strong></div>
+          <div class="stat"><span>Contacted</span><strong id="statContacted">0</strong></div>
+          <div class="stat"><span>Follow-up</span><strong id="statFollowUp">0</strong></div>
+          <div class="stat"><span>Converted</span><strong id="statConverted">0</strong></div>
+        </div>
+        <div class="table-tools">
+          <label><span class="skip-link">Search leads</span><input class="control" id="leadSearch" type="search" placeholder="Search business, person, email or phone…"></label>
+          <label><span class="skip-link">Filter by status</span><select class="control" id="statusFilter"><option value="All">All statuses</option><option>New</option><option>Contacted</option><option>Follow-up</option><option>Converted</option></select></label>
+        </div>
+        <div class="lead-list" id="leadList"></div>
+      </div>
+    </section>
+  </dialog>
+
+  <dialog class="dialog lead-dialog" id="leadDialog" aria-labelledby="leadDialogTitle">
+    <div class="dialog-shell">
+      <div class="dialog-head"><div><p class="eyebrow">Lead details</p><h2 id="leadDialogTitle">Add a lead</h2></div><button class="icon-button" type="button" data-close-lead aria-label="Close lead form">×</button></div>
+      <form class="lead-form" id="leadForm">
+        <input id="leadId" type="hidden">
+        <div class="form-grid">
+          <div class="field"><label for="leadBusiness">Business</label><input id="leadBusiness" required></div>
+          <div class="field"><label for="leadContact">Contact Person</label><input id="leadContact" required></div>
+          <div class="field"><label for="leadPhone">Phone</label><input id="leadPhone" type="tel"></div>
+          <div class="field"><label for="leadEmail">Email</label><input id="leadEmail" type="email"></div>
+          <div class="field"><label for="leadIndustry">Industry</label><input id="leadIndustry"></div>
+          <div class="field"><label for="leadSource">Lead Source</label><input id="leadSource" placeholder="e.g. Referral"></div>
+          <div class="field"><label for="leadStatus">Status</label><select id="leadStatus"><option>New</option><option>Contacted</option><option>Follow-up</option><option>Converted</option></select></div>
+          <div class="field"><label for="leadFollowUp">Follow-up Date</label><input id="leadFollowUp" type="date"></div>
+          <div class="field full"><label for="leadNotes">Notes</label><textarea id="leadNotes"></textarea></div>
+        </div>
+        <div class="lead-form-actions"><button class="button secondary" type="button" data-close-lead>Cancel</button><button class="button" type="submit">Save Lead</button></div>
+      </form>
+    </div>
+  </dialog>
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (selector, scope = document) => scope.querySelector(selector);
+      const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+      const header = $('#siteHeader');
+      const menuToggle = $('#menuToggle');
+
+      // Navigation
+      const updateHeader = () => header.classList.toggle('scrolled', scrollY > 24);
+      updateHeader();
+      addEventListener('scroll', updateHeader, { passive: true });
+      menuToggle.addEventListener('click', () => {
+        const open = header.classList.toggle('menu-open');
+        menuToggle.setAttribute('aria-expanded', String(open));
+        menuToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      });
+      $$('.nav-links a').forEach(link => link.addEventListener('click', () => {
+        header.classList.remove('menu-open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        menuToggle.setAttribute('aria-label', 'Open menu');
+      }));
+
+      // Restrained viewport reveals, disabled by CSS for reduced motion.
+      if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: .12, rootMargin: '0px 0px -40px' });
+        $$('.reveal').forEach(el => observer.observe(el));
+      } else {
+        $$('.reveal').forEach(el => el.classList.add('visible'));
+      }
+
+      $('#year').textContent = new Date().getFullYear();
+
+      // Public enquiry demonstration: browser validation only; no transmission/storage.
+      const enquiryForm = $('#enquiryForm');
+      enquiryForm.addEventListener('submit', event => {
+        event.preventDefault();
+        const status = $('#formStatus');
+        if (!enquiryForm.checkValidity()) {
+          enquiryForm.reportValidity();
+          status.textContent = '';
+          return;
+        }
+        status.textContent = 'Form validated. This demo does not send or store your details; connect a form service before launch.';
+      });
+
+      // Shared dialog helpers
+      const legalDialog = $('#legalDialog');
+      const salesDialog = $('#salesDialog');
+      const leadDialog = $('#leadDialog');
+      const setModalState = () => document.body.classList.toggle('modal-open', !!$('dialog[open]'));
+      const openDialog = dialog => { if (!dialog.open) dialog.showModal(); setModalState(); };
+      const closeDialog = dialog => { if (dialog.open) dialog.close(); setTimeout(setModalState); };
+      $$('[data-close-dialog]').forEach(button => button.addEventListener('click', () => closeDialog(button.closest('dialog'))));
+      [legalDialog, salesDialog, leadDialog].forEach(dialog => dialog.addEventListener('close', setModalState));
+
+      // Draft terms/privacy tabs.
+      const setLegalPanel = name => {
+        $$('.legal-tab').forEach(tab => {
+          const active = tab.dataset.panel === name;
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', String(active));
+        });
+        $('#termsPanel').hidden = name !== 'terms';
+        $('#privacyPanel').hidden = name !== 'privacy';
+        $('#legalTitle').textContent = name === 'terms' ? 'Terms of Service' : 'Privacy Policy';
+      };
+      $$('[data-legal]').forEach(button => button.addEventListener('click', () => {
+        setLegalPanel(button.dataset.legal);
+        openDialog(legalDialog);
+      }));
+      $$('.legal-tab').forEach(tab => tab.addEventListener('click', () => setLegalPanel(tab.dataset.panel)));
+
+      // DEMO AUTHENTICATION ONLY — replace with server-side authentication in production.
+      const DEMO_CREDENTIALS = Object.freeze({ id: 'demo', password: 'bcdev-demo' });
+      const loginView = $('#loginView');
+      const dashboardView = $('#dashboardView');
+      $('#salesLoginLink').addEventListener('click', () => {
+        $('#loginError').textContent = '';
+        openDialog(salesDialog);
+      });
+      $('#loginForm').addEventListener('submit', event => {
+        event.preventDefault();
+        const valid = $('#salesId').value.trim() === DEMO_CREDENTIALS.id && $('#salesPassword').value === DEMO_CREDENTIALS.password;
+        if (!valid) {
+          $('#loginError').textContent = 'Those demo credentials do not match.';
+          return;
+        }
+        $('#loginError').textContent = '';
+        loginView.style.display = 'none';
+        dashboardView.classList.add('active');
+        renderLeads();
+      });
+      $('#logoutButton').addEventListener('click', () => {
+        dashboardView.classList.remove('active');
+        loginView.style.display = '';
+        $('#loginForm').reset();
+      });
+
+      // DEMO/LOCAL STORAGE ONLY — not secure cloud storage and not for production personal data.
+      const STORAGE_KEY = 'bcdev_demo_leads_v1';
+      const statusNames = ['New', 'Contacted', 'Follow-up', 'Converted'];
+      let leads = [];
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        leads = Array.isArray(stored) ? stored : [];
+      } catch (error) {
+        leads = [];
+      }
+      const persistLeads = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+      const textCell = (label, text) => {
+        const cell = document.createElement('td');
+        cell.dataset.label = label;
+        cell.textContent = text || '—';
+        return cell;
+      };
+      const makeButton = (label, className, handler) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = className;
+        button.textContent = label;
+        button.addEventListener('click', handler);
+        return button;
+      };
+
+      function renderLeads() {
+        const query = $('#leadSearch').value.trim().toLowerCase();
+        const filter = $('#statusFilter').value;
+        const visible = leads.filter(lead => {
+          const haystack = [lead.business, lead.contact, lead.phone, lead.email, lead.industry, lead.source, lead.notes].join(' ').toLowerCase();
+          return (!query || haystack.includes(query)) && (filter === 'All' || lead.status === filter);
+        });
+
+        $('#statTotal').textContent = leads.length;
+        $('#statNew').textContent = leads.filter(l => l.status === 'New').length;
+        $('#statContacted').textContent = leads.filter(l => l.status === 'Contacted').length;
+        $('#statFollowUp').textContent = leads.filter(l => l.status === 'Follow-up').length;
+        $('#statConverted').textContent = leads.filter(l => l.status === 'Converted').length;
+
+        const host = $('#leadList');
+        host.replaceChildren();
+        if (!visible.length) {
+          const empty = document.createElement('div');
+          empty.className = 'empty-state';
+          const title = document.createElement('strong');
+          const copy = document.createElement('p');
+          const button = makeButton(leads.length ? 'Clear search and filters' : 'Add your first lead', 'button small', () => {
+            if (leads.length) { $('#leadSearch').value = ''; $('#statusFilter').value = 'All'; renderLeads(); }
+            else openLeadForm();
+          });
+          title.textContent = leads.length ? 'No leads match this view.' : 'No leads yet.';
+          copy.textContent = leads.length ? 'Try another search or status filter.' : 'Add your first prospect to get started.';
+          empty.append(title, copy, button);
+          host.append(empty);
+          return;
+        }
+
+        const table = document.createElement('table');
+        table.className = 'lead-table';
+        table.innerHTML = '<thead><tr><th>Business / Contact</th><th>Phone</th><th>Email</th><th>Industry / Source</th><th>Status</th><th>Follow-up</th><th>Notes</th><th>Actions</th></tr></thead>';
+        const body = document.createElement('tbody');
+        visible.forEach(lead => {
+          const row = document.createElement('tr');
+          const primary = document.createElement('td');
+          primary.className = 'primary-cell';
+          primary.dataset.label = 'Business / Contact';
+          const business = document.createElement('strong');
+          const contact = document.createElement('span');
+          business.textContent = lead.business;
+          contact.textContent = lead.contact;
+          primary.append(business, contact);
+          row.append(primary, textCell('Phone', lead.phone), textCell('Email', lead.email), textCell('Industry / Source', [lead.industry, lead.source].filter(Boolean).join(' · ')));
+
+          const statusCell = document.createElement('td');
+          statusCell.dataset.label = 'Status';
+          const statusSelect = document.createElement('select');
+          statusSelect.className = 'control status-pill';
+          statusSelect.setAttribute('aria-label', `Change status for ${lead.business}`);
+          statusNames.forEach(name => statusSelect.add(new Option(name, name, false, lead.status === name)));
+          statusSelect.dataset.status = lead.status;
+          statusSelect.addEventListener('change', () => {
+            lead.status = statusSelect.value;
+            persistLeads();
+            renderLeads();
+          });
+          statusCell.append(statusSelect);
+          row.append(statusCell, textCell('Follow-up', lead.followUp), textCell('Notes', lead.notes));
+
+          const actions = document.createElement('td');
+          actions.dataset.label = 'Actions';
+          const actionWrap = document.createElement('div');
+          actionWrap.className = 'row-actions';
+          actionWrap.append(
+            makeButton('Edit', 'text-button', () => openLeadForm(lead)),
+            makeButton('Delete', 'text-button', () => deleteLead(lead.id))
+          );
+          actions.append(actionWrap);
+          row.append(actions);
+          body.append(row);
+        });
+        table.append(body);
+        host.append(table);
+      }
+
+      function openLeadForm(lead = null) {
+        $('#leadDialogTitle').textContent = lead ? 'Edit lead' : 'Add a lead';
+        $('#leadForm').reset();
+        $('#leadId').value = lead?.id || '';
+        $('#leadBusiness').value = lead?.business || '';
+        $('#leadContact').value = lead?.contact || '';
+        $('#leadPhone').value = lead?.phone || '';
+        $('#leadEmail').value = lead?.email || '';
+        $('#leadIndustry').value = lead?.industry || '';
+        $('#leadSource').value = lead?.source || '';
+        $('#leadStatus').value = lead?.status || 'New';
+        $('#leadFollowUp').value = lead?.followUp || '';
+        $('#leadNotes').value = lead?.notes || '';
+        openDialog(leadDialog);
+      }
+      function deleteLead(id) {
+        const lead = leads.find(item => item.id === id);
+        if (!lead || !confirm(`Delete the lead for ${lead.business}? This cannot be undone.`)) return;
+        leads = leads.filter(item => item.id !== id);
+        persistLeads();
+        renderLeads();
+      }
+
+      $('#addLeadButton').addEventListener('click', () => openLeadForm());
+      $$('[data-close-lead]').forEach(button => button.addEventListener('click', () => closeDialog(leadDialog)));
+      $('#leadSearch').addEventListener('input', renderLeads);
+      $('#statusFilter').addEventListener('change', renderLeads);
+      $('#leadForm').addEventListener('submit', event => {
+        event.preventDefault();
+        if (!event.currentTarget.checkValidity()) { event.currentTarget.reportValidity(); return; }
+        const id = $('#leadId').value;
+        const nextLead = {
+          id: id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+          business: $('#leadBusiness').value.trim(),
+          contact: $('#leadContact').value.trim(),
+          phone: $('#leadPhone').value.trim(),
+          email: $('#leadEmail').value.trim(),
+          industry: $('#leadIndustry').value.trim(),
+          source: $('#leadSource').value.trim(),
+          status: $('#leadStatus').value,
+          followUp: $('#leadFollowUp').value,
+          notes: $('#leadNotes').value.trim()
+        };
+        if (id) leads = leads.map(item => item.id === id ? nextLead : item);
+        else leads.unshift(nextLead);
+        persistLeads();
+        closeDialog(leadDialog);
+        renderLeads();
+      });
+    })();
+  </script>
+</body>
+</html>
