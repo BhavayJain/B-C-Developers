@@ -817,21 +817,27 @@
 
       const normalizeHeader = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const getSpreadsheetValue = (row, aliases) => {
-        const entry = Object.entries(row).find(([key]) => aliases.includes(normalizeHeader(key)));
+        const entries = Object.entries(row);
+        const normalizedAliases = aliases.map(normalizeHeader);
+        const exact = entries.find(([key]) => normalizedAliases.includes(normalizeHeader(key)));
+        const entry = exact || entries.find(([key]) => {
+          const header = normalizeHeader(key);
+          return normalizedAliases.some(alias => alias.length > 4 && header.includes(alias));
+        });
         return entry ? String(entry[1] || '').trim() : '';
       };
       const importLead = row => {
-        const business = getSpreadsheetValue(row, ['business', 'company', 'businessname', 'companyname', 'organization']);
-        const contact = getSpreadsheetValue(row, ['contact', 'contactperson', 'name', 'fullname', 'person']);
-        if (!business || !contact) return null;
+        const business = getSpreadsheetValue(row, ['business', 'businessname', 'company', 'companyname', 'client', 'clientname', 'customer', 'customername', 'organization', 'account', 'accountname']);
+        const contact = getSpreadsheetValue(row, ['contact', 'contactperson', 'contactname', 'fullname', 'leadname', 'prospectname', 'person', 'name']);
+        if (!business && !contact) return null;
         const status = getSpreadsheetValue(row, ['status']).replace(/\s+/g, ' ');
         return {
           id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-          business,
-          contact,
-          phone: getSpreadsheetValue(row, ['phone', 'phonenumber', 'mobile']),
+          business: business || contact,
+          contact: contact || business,
+          phone: getSpreadsheetValue(row, ['phone', 'phonenumber', 'mobile', 'telephone']),
           email: getSpreadsheetValue(row, ['email', 'emailaddress']),
-          industry: getSpreadsheetValue(row, ['industry', 'businessType', 'sector']),
+          industry: getSpreadsheetValue(row, ['industry', 'businesstype', 'sector']),
           source: getSpreadsheetValue(row, ['source', 'leadsource']),
           status: statusNames.includes(status) ? status : 'New',
           followUp: getSpreadsheetValue(row, ['followup', 'followupdate', 'nextfollowup']),
@@ -956,14 +962,17 @@
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
           const imported = rows.map(row => importLead(row)).filter(Boolean);
+          const skipped = rows.length - imported.length;
           if (!imported.length) {
-            $('#importStatus').textContent = 'No usable rows found. Include Business and Contact Person columns.';
+            $('#importStatus').textContent = rows.length
+              ? 'No usable lead rows found. Add a Company, Business, Client, or Contact Name column with values.'
+              : 'The first worksheet is empty.';
             return;
           }
           leads = [...imported, ...leads];
           persistLeads();
           renderLeads();
-          $('#importStatus').textContent = `${imported.length} lead${imported.length === 1 ? '' : 's'} imported from ${file.name}.`;
+          $('#importStatus').textContent = `${imported.length} lead${imported.length === 1 ? '' : 's'} imported${skipped ? `; ${skipped} blank or unidentified row${skipped === 1 ? '' : 's'} skipped` : ''} from ${file.name}.`;
         } catch (error) {
           $('#importStatus').textContent = 'That XLSX file could not be read. Please check the file and try again.';
         }
