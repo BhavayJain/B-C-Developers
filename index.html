@@ -220,8 +220,6 @@
     .login-panel h3 { margin: 0 0 9px; font-size: 2.1rem; letter-spacing: -.045em; }
     .login-form { display: grid; gap: 20px; margin-top: 34px; }
     .login-form .button { margin-top: 8px; }
-    .demo-credentials { margin-top: 28px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); font-size: .82rem; }
-    .demo-credentials strong { display: block; margin-bottom: 5px; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
     .login-error { min-height: 22px; margin: 0; color: var(--danger); font-size: .86rem; }
     .dashboard-view { display: none; height: 100%; min-height: 0; grid-template-rows: auto 1fr; }
     .dashboard-view.active { display: grid; }
@@ -549,7 +547,11 @@
           <p class="lead" style="margin-top:28px">Tell me what you're working on, where you are now and what the website needs to achieve.</p>
           <p class="contact-meta">No polished brief required. A clear outline is enough to start the conversation.</p>
         </div>
-        <form class="enquiry-form reveal" id="enquiryForm">
+        <form class="enquiry-form reveal" id="enquiryForm" action="https://formsubmit.co/ajax/jbhavay96@gmail.com" method="POST">
+          <input type="hidden" name="_subject" value="New B&C Dev website enquiry">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_replyto" id="enquiryReplyTo">
+          <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="display:none">
           <div class="form-grid">
             <div class="field"><label for="name">Name</label><input id="name" name="name" autocomplete="name" required></div>
             <div class="field"><label for="business">Business / Organisation</label><input id="business" name="business" autocomplete="organization" required></div>
@@ -561,7 +563,7 @@
             <div class="field full"><label for="details">Additional details</label><textarea id="details" name="details" placeholder="What should the website help your business do?" required></textarea></div>
           </div>
           <div class="form-footer">
-            <p class="form-note">Frontend demonstration only. Submitting validates the form but does not send or store your details. Connect a backend or form service before launch.</p>
+            <p class="form-note">Your enquiry will be sent to jbhavay96@gmail.com. You can reply directly to the email address you provide.</p>
             <button class="button" type="submit">Send Enquiry <span class="arrow" aria-hidden="true">↗</span></button>
           </div>
           <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
@@ -603,7 +605,7 @@
       </section>
       <section class="legal-panel" id="privacyPanel" role="tabpanel" aria-labelledby="privacyTab" hidden>
         <p class="draft-banner">Draft only — [Business owner should review and replace this draft with the final privacy policy.]</p>
-        <p>This demonstration does not transmit the public enquiry form or store its entries. Before launch, document the production setup accurately.</p>
+        <p>The contact form sends enquiry details through FormSubmit for email delivery. Before launch, document the data handling, retention and service providers accurately.</p>
         <ul class="placeholder-list">
           <li><strong>Information collected:</strong> [List the information collected by the contact form and any analytics.]</li>
           <li><strong>Why it is collected:</strong> [Explain the purpose and lawful basis for collection.]</li>
@@ -626,14 +628,13 @@
       </aside>
       <div class="login-panel">
         <button class="icon-button" type="button" data-close-dialog aria-label="Close sales login">×</button>
-        <p class="eyebrow">Sales area</p><h3 id="salesTitle">Sales Login</h3><p class="lead">Enter the demonstration credentials to view the lead workspace.</p>
+        <p class="eyebrow">Sales area</p><h3 id="salesTitle">Sales Login</h3><p class="lead">Sign in to view the lead workspace.</p>
         <form class="login-form" id="loginForm">
           <div class="field"><label for="salesId">Salesperson ID</label><input id="salesId" autocomplete="username" required></div>
           <div class="field"><label for="salesPassword">Password</label><input id="salesPassword" type="password" autocomplete="current-password" required></div>
           <p class="login-error" id="loginError" role="alert"></p>
           <button class="button" type="submit">Open Dashboard <span class="arrow" aria-hidden="true">→</span></button>
         </form>
-        <div class="demo-credentials"><strong>Demo credentials</strong>ID: <code>demo</code> &nbsp; Password: <code>bcdev-demo</code><br>Frontend demonstration only—this is not secure authentication.</div>
       </div>
     </div>
 
@@ -723,17 +724,33 @@
 
       $('#year').textContent = new Date().getFullYear();
 
-      // Public enquiry demonstration: browser validation only; no transmission/storage.
+      // Send public enquiries through FormSubmit; the visitor email is used as Reply-To.
       const enquiryForm = $('#enquiryForm');
       enquiryForm.addEventListener('submit', event => {
         event.preventDefault();
         const status = $('#formStatus');
-        if (!enquiryForm.checkValidity()) {
-          enquiryForm.reportValidity();
-          status.textContent = '';
-          return;
-        }
-        status.textContent = 'Form validated. This demo does not send or store your details; connect a form service before launch.';
+        const submitButton = $('button[type="submit"]', enquiryForm);
+        $('#enquiryReplyTo').value = $('#email', enquiryForm).value.trim();
+        submitButton.disabled = true;
+        status.textContent = 'Sending your enquiry…';
+        fetch(enquiryForm.action, {
+          method: 'POST',
+          body: new FormData(enquiryForm),
+          headers: { Accept: 'application/json' }
+        })
+          .then(response => {
+            if (!response.ok) throw new Error('Email service request failed');
+            return response.json();
+          })
+          .then(result => {
+            if (String(result.success).toLowerCase() !== 'true') throw new Error('Email service rejected the request');
+            enquiryForm.reset();
+            status.textContent = 'Thanks, your enquiry has been sent. I’ll be in touch soon.';
+          })
+          .catch(() => {
+            status.textContent = 'Your enquiry could not be sent. Please try again or email jbhavay96@gmail.com directly.';
+          })
+          .finally(() => { submitButton.disabled = false; });
       });
 
       // Shared dialog helpers
@@ -827,21 +844,24 @@
         return entry ? String(entry[1] || '').trim() : '';
       };
       const importLead = row => {
+        const populated = Object.entries(row).filter(([, value]) => value !== '' && value != null);
+        if (!populated.length) return null;
         const business = getSpreadsheetValue(row, ['business', 'businessname', 'company', 'companyname', 'client', 'clientname', 'customer', 'customername', 'organization', 'account', 'accountname']);
         const contact = getSpreadsheetValue(row, ['contact', 'contactperson', 'contactname', 'fullname', 'leadname', 'prospectname', 'person', 'name']);
-        if (!business && !contact) return null;
         const status = getSpreadsheetValue(row, ['status']).replace(/\s+/g, ' ');
+        const notes = getSpreadsheetValue(row, ['notes', 'note', 'comments']);
+        const rawDetails = populated.map(([key, value]) => `${key}: ${String(value).trim()}`).join(' · ');
         return {
           id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-          business: business || contact,
-          contact: contact || business,
+          business: business || populated[0][1],
+          contact: contact || populated[1]?.[1] || business || populated[0][1],
           phone: getSpreadsheetValue(row, ['phone', 'phonenumber', 'mobile', 'telephone']),
           email: getSpreadsheetValue(row, ['email', 'emailaddress']),
           industry: getSpreadsheetValue(row, ['industry', 'businesstype', 'sector']),
           source: getSpreadsheetValue(row, ['source', 'leadsource']),
           status: statusNames.includes(status) ? status : 'New',
           followUp: getSpreadsheetValue(row, ['followup', 'followupdate', 'nextfollowup']),
-          notes: getSpreadsheetValue(row, ['notes', 'note', 'comments'])
+          notes: notes || rawDetails
         };
       };
 
@@ -959,14 +979,15 @@
         }
         try {
           const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          const rows = workbook.SheetNames.flatMap(name =>
+            XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' })
+          );
           const imported = rows.map(row => importLead(row)).filter(Boolean);
           const skipped = rows.length - imported.length;
           if (!imported.length) {
             $('#importStatus').textContent = rows.length
-              ? 'No usable lead rows found. Add a Company, Business, Client, or Contact Name column with values.'
-              : 'The first worksheet is empty.';
+              ? 'No populated rows were found in this workbook.'
+              : 'This workbook has no worksheets to import.';
             return;
           }
           leads = [...imported, ...leads];
