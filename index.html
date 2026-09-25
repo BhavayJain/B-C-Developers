@@ -233,6 +233,8 @@
     .dashboard-title { display: flex; justify-content: space-between; gap: 20px; align-items: end; }
     .dashboard-title h2 { margin: 0; font-size: clamp(2.2rem,4vw,4rem); line-height: 1; letter-spacing: -.055em; }
     .dashboard-title p { margin: 8px 0 0; color: var(--muted); }
+    .dashboard-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+    .import-status { min-height: 24px; margin: 12px 0 0; color: var(--success); font-size: .86rem; font-weight: 600; }
     .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; margin: 35px 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--border); }
     .stat { padding: 18px 20px; background: var(--surface); }
     .stat span { display: block; color: var(--muted); font-size: .75rem; font-weight: 600; text-transform: uppercase; }
@@ -323,7 +325,8 @@
       .dash-actions .button.secondary { display: none; }
       .dashboard-body { padding: 22px 14px; }
       .dashboard-title { display: block; }
-      .dashboard-title .button { width: 100%; margin-top: 20px; }
+      .dashboard-actions { display: grid; grid-template-columns: 1fr 1fr; margin-top: 20px; }
+      .dashboard-actions .button { width: 100%; }
       .stats { grid-template-columns: repeat(2,1fr); }
       .stats .stat:first-child { grid-column: 1/-1; }
       .table-tools { grid-template-columns: 1fr; }
@@ -533,7 +536,7 @@
         <div class="about-copy">
           <p>Working independently keeps communication direct and the work close to the person building it. Every project starts with the business itself—its priorities, audience and real requirements.</p>
           <p>The result is considered design and clean frontend development without the overhead or theatre of a large agency.</p>
-          <p class="editable"><strong>Owner profile placeholder:</strong> Add the developer's name, location, background or preferred introduction here before launch.</p>
+          <p class="editable"><strong>Initiative by Bhavya and Changdin.</strong></p>
         </div>
       </div>
     </section>
@@ -640,7 +643,7 @@
         <div class="dash-actions"><button class="button secondary small" id="logoutButton" type="button">Log out</button><button class="icon-button" type="button" data-close-dialog aria-label="Close sales dashboard">×</button></div>
       </header>
       <div class="dashboard-body">
-        <div class="dashboard-title"><div><h2>Lead overview</h2><p>Stored in this browser only. Do not use for real personal data.</p></div><button class="button" id="addLeadButton" type="button">Add a Lead <span aria-hidden="true">＋</span></button></div>
+        <div class="dashboard-title"><div><h2>Lead overview</h2><p>Stored in this browser only. Do not use for real personal data.</p></div><div class="dashboard-actions"><button class="button" id="importLeadsButton" type="button">Import XLSX <span aria-hidden="true">↑</span></button><button class="button secondary" id="addLeadButton" type="button">Add a Lead <span aria-hidden="true">＋</span></button><input id="leadFileInput" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></div></div>
         <div class="stats" aria-label="Lead totals">
           <div class="stat"><span>Total Leads</span><strong id="statTotal">0</strong></div>
           <div class="stat"><span>New Leads</span><strong id="statNew">0</strong></div>
@@ -648,6 +651,7 @@
           <div class="stat"><span>Follow-up</span><strong id="statFollowUp">0</strong></div>
           <div class="stat"><span>Converted</span><strong id="statConverted">0</strong></div>
         </div>
+        <p class="import-status" id="importStatus" role="status"></p>
         <div class="table-tools">
           <label><span class="skip-link">Search leads</span><input class="control" id="leadSearch" type="search" placeholder="Search business, person, email or phone…"></label>
           <label><span class="skip-link">Filter by status</span><select class="control" id="statusFilter"><option value="All">All statuses</option><option>New</option><option>Contacted</option><option>Follow-up</option><option>Converted</option></select></label>
@@ -677,6 +681,7 @@
       </form>
     </div>
   </dialog>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     (() => {
       'use strict';
@@ -810,6 +815,30 @@
         return button;
       };
 
+      const normalizeHeader = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const getSpreadsheetValue = (row, aliases) => {
+        const entry = Object.entries(row).find(([key]) => aliases.includes(normalizeHeader(key)));
+        return entry ? String(entry[1] || '').trim() : '';
+      };
+      const importLead = row => {
+        const business = getSpreadsheetValue(row, ['business', 'company', 'businessname', 'companyname', 'organization']);
+        const contact = getSpreadsheetValue(row, ['contact', 'contactperson', 'name', 'fullname', 'person']);
+        if (!business || !contact) return null;
+        const status = getSpreadsheetValue(row, ['status']).replace(/\s+/g, ' ');
+        return {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+          business,
+          contact,
+          phone: getSpreadsheetValue(row, ['phone', 'phonenumber', 'mobile']),
+          email: getSpreadsheetValue(row, ['email', 'emailaddress']),
+          industry: getSpreadsheetValue(row, ['industry', 'businessType', 'sector']),
+          source: getSpreadsheetValue(row, ['source', 'leadsource']),
+          status: statusNames.includes(status) ? status : 'New',
+          followUp: getSpreadsheetValue(row, ['followup', 'followupdate', 'nextfollowup']),
+          notes: getSpreadsheetValue(row, ['notes', 'note', 'comments'])
+        };
+      };
+
       function renderLeads() {
         const query = $('#leadSearch').value.trim().toLowerCase();
         const filter = $('#statusFilter').value;
@@ -913,6 +942,32 @@
       }
 
       $('#addLeadButton').addEventListener('click', () => openLeadForm());
+      $('#importLeadsButton').addEventListener('click', () => $('#leadFileInput').click());
+      $('#leadFileInput').addEventListener('change', async event => {
+        const file = event.currentTarget.files[0];
+        event.currentTarget.value = '';
+        if (!file) return;
+        if (!window.XLSX) {
+          $('#importStatus').textContent = 'The spreadsheet reader could not load. Check your connection and try again.';
+          return;
+        }
+        try {
+          const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          const imported = rows.map(row => importLead(row)).filter(Boolean);
+          if (!imported.length) {
+            $('#importStatus').textContent = 'No usable rows found. Include Business and Contact Person columns.';
+            return;
+          }
+          leads = [...imported, ...leads];
+          persistLeads();
+          renderLeads();
+          $('#importStatus').textContent = `${imported.length} lead${imported.length === 1 ? '' : 's'} imported from ${file.name}.`;
+        } catch (error) {
+          $('#importStatus').textContent = 'That XLSX file could not be read. Please check the file and try again.';
+        }
+      });
       $$('[data-close-lead]').forEach(button => button.addEventListener('click', () => closeDialog(leadDialog)));
       $('#leadSearch').addEventListener('input', renderLeads);
       $('#statusFilter').addEventListener('change', renderLeads);
