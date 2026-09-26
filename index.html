@@ -320,7 +320,7 @@
       .sales-dialog { width: 100vw; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
       .dash-header { padding: 12px 14px; }
       .dash-brand span { display: none; }
-      .dash-actions .button.secondary { display: none; }
+      .dash-actions .button.secondary { display: inline-flex; }
       .dashboard-body { padding: 22px 14px; }
       .dashboard-title { display: block; }
       .dashboard-actions { display: grid; grid-template-columns: 1fr 1fr; margin-top: 20px; }
@@ -335,7 +335,7 @@
       .lead-table td { display: block !important; padding: 0; border: 0; }
       .lead-table td::before { display: block; margin-bottom: 2px; color: var(--muted); content: attr(data-label); font-size: .62rem; letter-spacing: .04em; text-transform: uppercase; }
       .lead-table td:first-child, .lead-table td:nth-child(4), .lead-table td:nth-child(7) { grid-column: 1/-1; }
-      .lead-table td:nth-child(5), .lead-table td:nth-child(6) { display: none !important; }
+      .lead-table td:nth-child(6) { display: none !important; }
       .lead-table .row-actions { justify-content: flex-end; }
       .dialog-shell { padding: 26px 20px; }
     }
@@ -614,7 +614,7 @@
           <li><strong>Third parties:</strong> [List hosting, analytics, form, email or other providers.]</li>
           <li><strong>Deletion requests:</strong> [Provide an email or process for access and deletion requests.]</li>
         </ul>
-        <h3>Sales dashboard demonstration</h3><p>The included lead dashboard uses this browser's localStorage. It is not secure cloud storage and must not be used for real personal data. Production use requires proper authentication, access control and secured backend storage.</p>
+        <h3>Sales workspace</h3><p>Lead records are stored in Supabase and are available to authorized sales accounts. Review your data retention and privacy obligations before collecting prospect information.</p>
       </section>
     </div>
   </dialog>
@@ -624,13 +624,13 @@
       <aside class="login-aside">
         <a class="brand" href="#top">B<span class="amp">&amp;</span>C Dev</a>
         <div><p class="eyebrow">Internal demonstration</p><h2>Prospects, kept <em>in view.</em></h2><p>A lightweight frontend demonstration for managing sales leads.</p></div>
-        <p>Local browser storage only. Not for real client or prospect data.</p>
+        <p>Shared workspace for authorized sales users.</p>
       </aside>
       <div class="login-panel">
         <button class="icon-button" type="button" data-close-dialog aria-label="Close sales login">×</button>
-        <p class="eyebrow">Sales area</p><h3 id="salesTitle">Sales Login</h3><p class="lead">Sign in to view the lead workspace.</p>
+        <p class="eyebrow">Sales area</p><h3 id="salesTitle">Sales Login</h3><p class="lead">Sign in with your authorized sales account.</p>
         <form class="login-form" id="loginForm">
-          <div class="field"><label for="salesId">Salesperson ID</label><input id="salesId" autocomplete="username" required></div>
+          <div class="field"><label for="salesId">Email</label><input id="salesId" type="email" autocomplete="username" required></div>
           <div class="field"><label for="salesPassword">Password</label><input id="salesPassword" type="password" autocomplete="current-password" required></div>
           <p class="login-error" id="loginError" role="alert"></p>
           <button class="button" type="submit">Open Dashboard <span class="arrow" aria-hidden="true">→</span></button>
@@ -640,11 +640,11 @@
 
     <section class="dashboard-view" id="dashboardView" aria-label="Lead dashboard">
       <header class="dash-header">
-        <div class="dash-brand"><strong>B<span style="color:var(--accent)">&amp;</span>C Dev</strong><span>Sales workspace · local demo</span></div>
+        <div class="dash-brand"><strong>B<span style="color:var(--accent)">&amp;</span>C Dev</strong><span>Shared sales workspace · Supabase</span></div>
         <div class="dash-actions"><button class="button secondary small" id="logoutButton" type="button">Log out</button><button class="icon-button" type="button" data-close-dialog aria-label="Close sales dashboard">×</button></div>
       </header>
       <div class="dashboard-body">
-        <div class="dashboard-title"><div><h2>Lead overview</h2><p>Stored in this browser only. Do not use for real personal data.</p></div><div class="dashboard-actions"><button class="button" id="importLeadsButton" type="button">Import XLSX <span aria-hidden="true">↑</span></button><button class="button secondary" id="addLeadButton" type="button">Add a Lead <span aria-hidden="true">＋</span></button><input id="leadFileInput" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></div></div>
+        <div class="dashboard-title"><div><h2>Lead overview</h2><p>Shared lead data. Updates sync for signed-in sales users.</p></div><div class="dashboard-actions"><button class="button" id="importLeadsButton" type="button">Import XLSX <span aria-hidden="true">↑</span></button><button class="button secondary" id="addLeadButton" type="button">Add a Lead <span aria-hidden="true">＋</span></button><input id="leadFileInput" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></div></div>
         <div class="stats" aria-label="Lead totals">
           <div class="stat"><span>Total Leads</span><strong id="statTotal">0</strong></div>
           <div class="stat"><span>New Leads</span><strong id="statNew">0</strong></div>
@@ -682,6 +682,7 @@
       </form>
     </div>
   </dialog>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     (() => {
@@ -780,43 +781,134 @@
       }));
       $$('.legal-tab').forEach(tab => tab.addEventListener('click', () => setLegalPanel(tab.dataset.panel)));
 
-      // DEMO AUTHENTICATION ONLY — replace with server-side authentication in production.
-      const DEMO_CREDENTIALS = Object.freeze({ id: 'demo', password: 'bcdev-demo' });
+      const SUPABASE_URL = 'https://fiaajusunsmvuyychixq.supabase.co';
+      const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_6ZEn6KKnhNP0BgwE388AxQ_dlETI8UU';
+      const SALES_ADMIN_EMAIL = 'jbhavay96@gmail.com';
+      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const loginView = $('#loginView');
       const dashboardView = $('#dashboardView');
+      let currentUser = null;
+      let isAdmin = false;
+
+      async function enterDashboard(user) {
+        const { data: authorized, error: authorizationError } = await supabaseClient.rpc('is_sales_member');
+        if (authorizationError || authorized !== true) {
+          await supabaseClient.auth.signOut();
+          $('#loginError').textContent = 'This account is not authorized for the sales workspace. Ask the administrator.';
+          return;
+        }
+        currentUser = user;
+        isAdmin = (user.email || '').toLowerCase() === SALES_ADMIN_EMAIL;
+        loginView.style.display = 'none';
+        dashboardView.classList.add('active');
+        $('.dashboard-actions').hidden = !isAdmin;
+        await loadLeads();
+      }
+
+      function leaveDashboard() {
+        currentUser = null;
+        isAdmin = false;
+        dashboardView.classList.remove('active');
+        loginView.style.display = '';
+        $('#loginForm').reset();
+        leads = [];
+        renderLeads();
+      }
+
       $('#salesLoginLink').addEventListener('click', () => {
         $('#loginError').textContent = '';
         openDialog(salesDialog);
       });
-      $('#loginForm').addEventListener('submit', event => {
+      $('#loginForm').addEventListener('submit', async event => {
         event.preventDefault();
-        const valid = $('#salesId').value.trim() === DEMO_CREDENTIALS.id && $('#salesPassword').value === DEMO_CREDENTIALS.password;
-        if (!valid) {
-          $('#loginError').textContent = 'Those demo credentials do not match.';
+        const submitButton = $('button[type="submit"]', event.currentTarget);
+        submitButton.disabled = true;
+        $('#loginError').textContent = '';
+        try {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: $('#salesId').value.trim(),
+            password: $('#salesPassword').value
+          });
+          if (error) throw error;
+          await enterDashboard(data.user);
+        } catch (error) {
+          $('#loginError').textContent = 'Sign-in failed. Check your email and password, then try again.';
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+      $('#logoutButton').addEventListener('click', async () => {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+          $('#importStatus').textContent = 'Could not sign out. Please try again.';
           return;
         }
-        $('#loginError').textContent = '';
-        loginView.style.display = 'none';
-        dashboardView.classList.add('active');
-        renderLeads();
+        leaveDashboard();
       });
-      $('#logoutButton').addEventListener('click', () => {
-        dashboardView.classList.remove('active');
-        loginView.style.display = '';
-        $('#loginForm').reset();
+      supabaseClient.auth.getSession().then(({ data, error }) => {
+        if (error) return;
+        if (data.session) enterDashboard(data.session.user);
       });
 
-      // DEMO/LOCAL STORAGE ONLY — not secure cloud storage and not for production personal data.
-      const STORAGE_KEY = 'bcdev_demo_leads_v1';
+      const LEGACY_STORAGE_KEY = 'bcdev_demo_leads_v1';
       const statusNames = ['New', 'Contacted', 'Follow-up', 'Converted'];
       let leads = [];
-      try {
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        leads = Array.isArray(stored) ? stored : [];
-      } catch (error) {
-        leads = [];
+      const toDatabaseLead = lead => ({
+        id: String(lead.id || crypto.randomUUID()),
+        business: String(lead.business || ''),
+        contact: String(lead.contact || ''),
+        phone: String(lead.phone || ''),
+        email: String(lead.email || ''),
+        industry: String(lead.industry || ''),
+        source: String(lead.source || ''),
+        status: statusNames.includes(lead.status) ? lead.status : 'New',
+        follow_up: lead.followUp || null,
+        notes: String(lead.notes || ''),
+        raw_data: lead.rawData || {},
+        created_by: currentUser?.id || null
+      });
+      const fromDatabaseLead = row => ({
+        id: row.id,
+        business: row.business,
+        contact: row.contact,
+        phone: row.phone || '',
+        email: row.email || '',
+        industry: row.industry || '',
+        source: row.source || '',
+        status: row.status || 'New',
+        followUp: row.follow_up || '',
+        notes: row.notes || '',
+        rawData: row.raw_data || {}
+      });
+      async function loadLeads() {
+        $('#importStatus').textContent = 'Loading shared leads…';
+        if (isAdmin) {
+          try {
+            const legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || '[]');
+            if (Array.isArray(legacy) && legacy.length) {
+              const { error: migrationError } = await supabaseClient
+                .from('leads')
+                .upsert(legacy.map(toDatabaseLead), { onConflict: 'id', ignoreDuplicates: true });
+              if (migrationError) throw migrationError;
+              localStorage.removeItem(LEGACY_STORAGE_KEY);
+            }
+          } catch (error) {
+            $('#importStatus').textContent = 'Existing local leads could not be migrated. Check the Supabase setup, then reload.';
+            return;
+          }
+        }
+        const { data, error } = await supabaseClient
+          .from('leads')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) {
+          $('#importStatus').textContent = 'Could not load shared leads. Run supabase-setup.sql in your project and try again.';
+          return;
+        }
+        leads = data.map(fromDatabaseLead);
+        $('#importStatus').textContent = '';
+        renderLeads();
       }
-      const persistLeads = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
       const textCell = (label, text) => {
         const cell = document.createElement('td');
         cell.dataset.label = label;
@@ -854,14 +946,15 @@
         return {
           id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
           business: business || populated[0][1],
-          contact: contact || populated[1]?.[1] || business || populated[0][1],
+          contact: contact || business || populated[0][1],
           phone: getSpreadsheetValue(row, ['phone', 'phonenumber', 'mobile', 'telephone']),
           email: getSpreadsheetValue(row, ['email', 'emailaddress']),
-          industry: getSpreadsheetValue(row, ['industry', 'businesstype', 'sector']),
-          source: getSpreadsheetValue(row, ['source', 'leadsource']),
+          industry: getSpreadsheetValue(row, ['industry', 'businesstype', 'sector', 'category']),
+          source: getSpreadsheetValue(row, ['source', 'leadsource', 'leadtier']),
           status: statusNames.includes(status) ? status : 'New',
           followUp: getSpreadsheetValue(row, ['followup', 'followupdate', 'nextfollowup']),
-          notes: notes || rawDetails
+          notes: notes || rawDetails,
+          rawData: row
         };
       };
 
@@ -886,20 +979,23 @@
           empty.className = 'empty-state';
           const title = document.createElement('strong');
           const copy = document.createElement('p');
-          const button = makeButton(leads.length ? 'Clear search and filters' : 'Add your first lead', 'button small', () => {
-            if (leads.length) { $('#leadSearch').value = ''; $('#statusFilter').value = 'All'; renderLeads(); }
-            else openLeadForm();
-          });
           title.textContent = leads.length ? 'No leads match this view.' : 'No leads yet.';
-          copy.textContent = leads.length ? 'Try another search or status filter.' : 'Add your first prospect to get started.';
-          empty.append(title, copy, button);
+          copy.textContent = leads.length ? 'Try another search or status filter.' : isAdmin ? 'Import your XLSX workbook to add the sales pipeline.' : 'Your administrator has not imported any leads yet.';
+          empty.append(title, copy);
+          if (isAdmin) {
+            const button = makeButton(leads.length ? 'Clear search and filters' : 'Import XLSX', 'button small', () => {
+              if (leads.length) { $('#leadSearch').value = ''; $('#statusFilter').value = 'All'; renderLeads(); }
+              else $('#leadFileInput').click();
+            });
+            empty.append(button);
+          }
           host.append(empty);
           return;
         }
 
         const table = document.createElement('table');
         table.className = 'lead-table';
-        table.innerHTML = '<thead><tr><th>Business / Contact</th><th>Phone</th><th>Email</th><th>Industry / Source</th><th>Status</th><th>Follow-up</th><th>Notes</th><th>Actions</th></tr></thead>';
+        table.innerHTML = `<thead><tr><th>Business / Contact</th><th>Phone</th><th>Email</th><th>Industry / Source</th><th>Status</th><th>Follow-up</th><th>Notes</th>${isAdmin ? '<th>Actions</th>' : ''}</tr></thead>`;
         const body = document.createElement('tbody');
         visible.forEach(lead => {
           const row = document.createElement('tr');
@@ -920,24 +1016,42 @@
           statusSelect.setAttribute('aria-label', `Change status for ${lead.business}`);
           statusNames.forEach(name => statusSelect.add(new Option(name, name, false, lead.status === name)));
           statusSelect.dataset.status = lead.status;
-          statusSelect.addEventListener('change', () => {
+          statusSelect.addEventListener('change', async () => {
+            const previousStatus = lead.status;
+            statusSelect.disabled = true;
+            const { error } = await supabaseClient.rpc('update_lead_progress', {
+              p_lead_id: lead.id,
+              p_status: statusSelect.value,
+              p_follow_up: lead.followUp || null,
+              p_notes: lead.notes || null
+            });
+            statusSelect.disabled = false;
+            if (error) {
+              statusSelect.value = previousStatus;
+              statusSelect.dataset.status = previousStatus;
+              $('#importStatus').textContent = 'Status could not be saved. Check the Supabase SQL setup and retry.';
+              return;
+            }
             lead.status = statusSelect.value;
-            persistLeads();
+            statusSelect.dataset.status = lead.status;
+            $('#importStatus').textContent = 'Status updated and synced.';
             renderLeads();
           });
           statusCell.append(statusSelect);
           row.append(statusCell, textCell('Follow-up', lead.followUp), textCell('Notes', lead.notes));
 
-          const actions = document.createElement('td');
-          actions.dataset.label = 'Actions';
-          const actionWrap = document.createElement('div');
-          actionWrap.className = 'row-actions';
-          actionWrap.append(
-            makeButton('Edit', 'text-button', () => openLeadForm(lead)),
-            makeButton('Delete', 'text-button', () => deleteLead(lead.id))
-          );
-          actions.append(actionWrap);
-          row.append(actions);
+          if (isAdmin) {
+            const actions = document.createElement('td');
+            actions.dataset.label = 'Actions';
+            const actionWrap = document.createElement('div');
+            actionWrap.className = 'row-actions';
+            actionWrap.append(
+              makeButton('Edit', 'text-button', () => openLeadForm(lead)),
+              makeButton('Delete', 'text-button', () => deleteLead(lead.id))
+            );
+            actions.append(actionWrap);
+            row.append(actions);
+          }
           body.append(row);
         });
         table.append(body);
@@ -945,6 +1059,7 @@
       }
 
       function openLeadForm(lead = null) {
+        if (!isAdmin) return;
         $('#leadDialogTitle').textContent = lead ? 'Edit lead' : 'Add a lead';
         $('#leadForm').reset();
         $('#leadId').value = lead?.id || '';
@@ -959,17 +1074,22 @@
         $('#leadNotes').value = lead?.notes || '';
         openDialog(leadDialog);
       }
-      function deleteLead(id) {
+      async function deleteLead(id) {
         const lead = leads.find(item => item.id === id);
-        if (!lead || !confirm(`Delete the lead for ${lead.business}? This cannot be undone.`)) return;
+        if (!isAdmin || !lead || !confirm(`Delete the lead for ${lead.business}? This cannot be undone.`)) return;
+        const { error } = await supabaseClient.from('leads').delete().eq('id', id);
+        if (error) {
+          $('#importStatus').textContent = 'Lead could not be deleted.';
+          return;
+        }
         leads = leads.filter(item => item.id !== id);
-        persistLeads();
         renderLeads();
       }
 
       $('#addLeadButton').addEventListener('click', () => openLeadForm());
       $('#importLeadsButton').addEventListener('click', () => $('#leadFileInput').click());
       $('#leadFileInput').addEventListener('change', async event => {
+        if (!isAdmin) return;
         const file = event.currentTarget.files[0];
         event.currentTarget.value = '';
         if (!file) return;
@@ -979,9 +1099,12 @@
         }
         try {
           const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
-          const rows = workbook.SheetNames.flatMap(name =>
-            XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' })
-          );
+          const rows = workbook.SheetNames.flatMap(name => {
+            const sheetRows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' });
+            const headerNames = Object.keys(sheetRows[0] || {}).map(normalizeHeader);
+            const isSummaryTab = headerNames.length === 1 && headerNames[0].includes('summary');
+            return isSummaryTab ? [] : sheetRows;
+          });
           const imported = rows.map(row => importLead(row)).filter(Boolean);
           const skipped = rows.length - imported.length;
           if (!imported.length) {
@@ -990,9 +1113,9 @@
               : 'This workbook has no worksheets to import.';
             return;
           }
-          leads = [...imported, ...leads];
-          persistLeads();
-          renderLeads();
+          const { error } = await supabaseClient.from('leads').insert(imported.map(toDatabaseLead));
+          if (error) throw error;
+          await loadLeads();
           $('#importStatus').textContent = `${imported.length} lead${imported.length === 1 ? '' : 's'} imported${skipped ? `; ${skipped} blank or unidentified row${skipped === 1 ? '' : 's'} skipped` : ''} from ${file.name}.`;
         } catch (error) {
           $('#importStatus').textContent = 'That XLSX file could not be read. Please check the file and try again.';
@@ -1001,8 +1124,9 @@
       $$('[data-close-lead]').forEach(button => button.addEventListener('click', () => closeDialog(leadDialog)));
       $('#leadSearch').addEventListener('input', renderLeads);
       $('#statusFilter').addEventListener('change', renderLeads);
-      $('#leadForm').addEventListener('submit', event => {
+      $('#leadForm').addEventListener('submit', async event => {
         event.preventDefault();
+        if (!isAdmin) return;
         if (!event.currentTarget.checkValidity()) { event.currentTarget.reportValidity(); return; }
         const id = $('#leadId').value;
         const nextLead = {
@@ -1017,11 +1141,16 @@
           followUp: $('#leadFollowUp').value,
           notes: $('#leadNotes').value.trim()
         };
-        if (id) leads = leads.map(item => item.id === id ? nextLead : item);
-        else leads.unshift(nextLead);
-        persistLeads();
+        const payload = toDatabaseLead(nextLead);
+        const result = id
+          ? await supabaseClient.from('leads').update(payload).eq('id', id)
+          : await supabaseClient.from('leads').insert(payload);
+        if (result.error) {
+          $('#importStatus').textContent = 'Lead could not be saved. Check your Supabase setup and try again.';
+          return;
+        }
         closeDialog(leadDialog);
-        renderLeads();
+        await loadLeads();
       });
     })();
   </script>
